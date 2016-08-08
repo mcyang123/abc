@@ -25,97 +25,154 @@ f_c.close()
 class getData():
 	def __init__(self):
 		self.url = 'http://odds.500.com/'#'http://odds.500.com/europe_jczq.shtml'    #get competition info
+		self.f_log = open('log.txt','a')
+		self.time_now = time.strftime('%Y-%m-%d-%X', time.localtime( time.time()))
+		self.f_log.write(self.time_now+":program star.\n")
+		print 'log'
+
+	def time_refresh(self):
+		self.time_now = time.strftime('%Y-%m-%d-%X', time.localtime( time.time()))
 
 	def get_competition(self):
-		competition_list=[]
-		try:
-			r = requests.get(self.url)
-		except :
-			print "can't open http://odds.500.com/europe_jczq.shtml"
-			raise urlOpenError
+		'''
+		获取指数中心的比赛信息，包括比赛id（fid），比赛队伍（team），场次（scene）、比赛日期（date）
+		'''
+		competition_list=[]                             #用于返回该函数获取的数据
+		re_count = 0                                    #主链接请求次数
+		while(re_count<5):                              #若请求失败，重复请求
+			try:
+				r = requests.get(self.url)
+				break
+			except :
+				error_mes =  "can't open " + self.url+'!\n'
+				re_count += 1
+		if (re_count>=5):                                #请求5次失败，写入运行日记
+			self.time_refresh()
+			self.f_log.write(self.time_now+error_mes)
+			self.f_log.close()
+			raise
 		html = r.text
-		tbody = re.findall('<tbody id="main-tbody">(.+?)</tbody>',html,re.S)
+		tbody = re.findall('<tbody id="main-tbody">(.+?)</tbody>',html,re.S)      #解析出tobody代码
+		#print 'tbody:' +str(len(tbody))
 		if len(tbody)==1:
 			tbody = tbody[0]
-		else:
-			print "can't get tbody code"
+		else:                                                                     #解析失败，退出程序，记录日志
+			error_mes =  "can't get tbody code!\n"
+			self.time_refresh()
+			self.f_log.write(self.time_now+error_mes)
+			self.f_log.close()
 			raise
-		info_list = re.findall('<tr (data-fid="[0-9]+?" data.+?>.+?)</tr>',tbody,re.S)
-		for info in info_list:
-			data_c = {}
-			#------------------get fid--------------------------------------
-			fid = re.findall('data-fid="([0-9]+?)"',info,re.S)
-			if len(fid) == 1:
-				data_c['fid'] = fid[0]
-			else:
-				print "can't get fid"
-				data_c['fid'] = ''
-			#-----------------get date-------------------------------------
-			date = re.findall('<td.+?>([0-9]{2}-[0-9]{2}).+?</td>',info,re.S)
-			if len(date)>0:
-				data_c['date'] = date[0]
-			else:
-				print "can't get date"
-				data_c['date'] = ''
-			#------------------get team name-------------------------------
-			team = re.findall('<a class="team_link".+?>(.+?)</a>',info,re.S)
-			if len(team) == 2:
-				data_c['team'] = [t.encode('unicode_escape').decode('string_escape') for t in team]
-			else:
-				print "team name error"
-				data_c['team'] = ''
-			#-------------------get competition info----------------------
-			scene = re.findall('<input.+?'+fid[0]+'.+?>(.+?)</label>',info,re.S)
-			if len(scene) == 1:
-				data_c['scene'] = scene[0].encode('unicode_escape').decode('string_escape')
-			else:
-				print "scene error"
-				data_c['scene'] = ''
-			competition_list.append(data_c)
+		info_list = re.findall('<tr(.+?)</tr>',tbody,re.S)
+		#print 'info:' +str(len(info_list))
+		for a,info in enumerate(info_list):
+			if a%2 == 0:
+				data_c = {}
+				#------------------get fid--------------------------------------
+				fid = re.findall('data-fid="([0-9]+?)"',info,re.S)
+				if len(fid) == 1:
+					data_c['fid'] = fid[0]
+				else:
+					mes =  "can't get fid\n"
+					self.time_refresh()
+					self.f_log.write(self.time_now+mes)
+					data_c['fid'] = ''
+				#-----------------get date-------------------------------------
+				date = re.findall('<td.+?>([0-9]{2}-[0-9]{2}).+?</td>',info,re.S)
+				if len(date)>0:
+					data_c['date'] = date[0]
+				else:
+					mes =  "can't get date\n"
+					self.time_refresh()
+					self.f_log.write(self.time_now+mes)
+					data_c['date'] = ''
+				#------------------get team name-------------------------------
+				team = re.findall('<a class="team_link".+?>(.+?)</a>',info,re.S)
+				if len(team) == 2:
+					data_c['team'] = [t.encode('unicode_escape').decode('string_escape') for t in team]
+				else:
+					mes = "team name error\n"
+					self.time_refresh()
+					self.f_log.write(self.time_now+mes)
+					data_c['team'] = ''
+				#-------------------get competition info----------------------
+				scene = re.findall('<input.+?'+fid[0]+'.+?>(.+?)</label>',info,re.S)
+				if len(scene) == 1:
+					data_c['scene'] = scene[0].encode('unicode_escape').decode('string_escape')
+				else:
+					mes = "scene error\n"
+					self.time_refresh()
+					self.f_log.write(self.time_now+mes)
+					data_c['scene'] = ''
+				#----------------------整合数据--------------------------------
+				competition_list.append(data_c)
 		return competition_list
 	
 	def get_company(self,fid):
 		company_list = []
 		html_company = '-1'
-		data_raw = ''
+		data_raw = ''                          #解析某场比赛原始数据代码
 		i = 0
 		while html_company!='':
 			data_url = 'http://odds.500.com/fenxi1/ouzhi.php?id='+fid+'&ctype=1&start='+str(i*30+1)+'&r=1&style=0&guojia=0&chupan=1'
-			try:
-				html_company = requests.get(data_url).text.encode('utf8')
-			except:
-				print "can't open "+data_url
-				raise urlOpenError
+			re_count = 0
+			while(re_count<5):
+				try:
+					html_company = requests.get(data_url).text.encode('utf8')
+					break
+				except:
+					error_mes =  "can't open " + data.url+'!\n'
+					re_count += 1 
+
+			if (re_count>=5):                                #请求5次失败，写入运行日记
+				self.time_refresh()
+				self.f_log.write(self.time_now+error_mes)
+				self.f_log.close()
+				raise
+
 			data_raw = data_raw+html_company
 			i = i+1
 			#break #--------------------------------------------------
 		re_str = '<p>(.+?)</p>.+?<p>(.+?)</p>.+?<table(.+?)</table>.+?<table(.+?)</table>.+?<table(.+?)</table>.+?<table(.+?)</table>'
-		data_split = re.findall(re_str,data_raw,re.S)
-		for data_temp in data_split:
-			company_dir = {}
-			cid = re.findall('id="ck(.+?)"',data_temp[0],re.S)
-			if len(cid)==1:
+		data_split = re.findall(re_str,data_raw,re.S)         #获取数据行
+		for data_temp in data_split:                          #解析每一行数据，获取该行中目标数据
+			company_dir = {} 
+			cid = re.findall('id="ck(.+?)"',data_temp[0],re.S)  #获取cid
+			if len(cid)==1:                                   
 				company_dir['cid'] = cid[0]
 			else:
 				company_dir['cid'] = ''
-			company_dir['compensation'] = re.findall('<td.+?>(.+?)</td>',data_temp[2],re.S)
-			company_dir['compensation_change'] = 'class="bg-a"'in data_temp[2] or 'class="bg-b"'in data_temp[2]
-			company_dir['kelly'] = re.findall('<td.+?>(.+?)</td>',data_temp[5],re.S)
-			company_dir['kelly_change'] = 'class="bg-a"'in data_temp[5] or 'class="bg-b"'in data_temp[5]
-			company_list.append(company_dir)
+				mes = "cid error\n"
+				self.time_refresh()
+				self.f_log.write(self.time_now+mes)
+
+			company_dir['compensation'] = re.findall('<td.+?>(.+?)</td>',data_temp[2],re.S)                         #获取赔率
+			company_dir['compensation_change'] = 'class="bg-a"'in data_temp[2] or 'class="bg-b"'in data_temp[2]     #赔率是否变化
+			company_dir['kelly'] = re.findall('<td.+?>(.+?)</td>',data_temp[5],re.S)                                #获取凯利
+			company_dir['kelly_change'] = 'class="bg-a"'in data_temp[5] or 'class="bg-b"'in data_temp[5]            #凯利是否变化
+			company_list.append(company_dir)                                                                        #整合数据
 		return company_list
 	
 	def get_history_kelly(self,fid,cid):
-		t_day = time.strftime(time_day, time.localtime( time.time()))
-		t_time = time.strftime(time_time, time.localtime( time.time()))
+		self.time_refresh()
+		t_day = self.time_now[0:10]
+		t_time = self.time_now[10:]
 		time_d = t_day+'+'+urllib.quote(t_time)
 		kelly_url = 'http://odds.500.com/fenxi1/json/ouzhi.php?type=kelly&r=1&fid='+str(fid)+'&cid='+str(cid)+'&time='+time_d
-		try:
-			html_h_kelly = requests.get(kelly_url).text.encode('utf8')
-		except:
-			print "can't open "+kelly_url
-			raise urlOpenError
-		h_kellt_data = re.findall('\[(\[.+?\])',html_h_kelly,re.S)
+		re_count = 0
+		while(re_count<5):                                                           #请求数据
+			try:
+				html_h_kelly = requests.get(kelly_url).text.encode('utf8')
+				break
+			except:
+				error_mes = "can't open "+kelly_url+'!\n'
+				re_count += 1
+		if (re_count>=5):                                #请求5次失败，写入运行日记
+			self.time_refresh()
+			self.f_log.write(self.time_now+error_mes)
+			self.f_log.close()
+			raise
+
+		h_kellt_data = re.findall('\[(\[.+?\])',html_h_kelly,re.S)                   #解析数据
 		if len(h_kellt_data)>0:
 			h_kellt_data = h_kellt_data[0]
 		else:
@@ -168,6 +225,8 @@ def mulprocess_fun_pm(sub_competition,q,abc):
 		f_d = open(file_name,'r')
 		exec(f_d.read())
 		f_d.close()
+		if data == {}:
+			raise
 
 		for c in sub_competition:
 			Fid = c['fid']                             #查看比赛id
@@ -202,14 +261,16 @@ def star_spider():   #main
 	#-------------------star-------------------------
 	data_output = {}
 
-	file_name = time.strftime(time_day, time.localtime( time.time()))
+	file_name1 = time.strftime(time_day, time.localtime( time.time()))
 	clock = time.strftime(time_time, time.localtime( time.time()))
-	file_name = 'data/'+file_name+'.xls'
+	#file_name = 'data/'+file_name+'.xls'
 	if int(clock[0:2])<12:
 		func = mulprocess_fun_am
+		file_name = 'data/'+file_name1+'-am.txt'
 		Wt = 'w'
 	else:
 		func = mulprocess_fun_pm
+		file_name = 'data/'+file_name1+'-pm.txt'
 		Wt = 'a'
 	abc = getData()
 	competition = abc.get_competition()
@@ -239,13 +300,18 @@ def star_spider():   #main
 		if not (z == ''):
 			data_output = dict(data_output,**z)
 			i = i+1
-			print i
 			if i == proc_amout:
-				writeExcl.write_excl(data_output,file_name,Wt)
+				f_txt = open(file_name,'w')
+				f_txt.write('data='+str(data_output))
+				f_txt.close()
+				file_name2 = 'output/'+file_name1+'.xls'
+				writeExcl.write_excl(data_output,file_name2,Wt)
+				abc.f_log.close()
 				break
 
 
 if __name__ == '__main__':
+	
 	multiprocessing.freeze_support()
 	now_time= time.strftime('%X', time.localtime( time.time()))
 	if now_time<'12:00:00':
@@ -269,3 +335,8 @@ if __name__ == '__main__':
 		else:
 			pass
 			#print now_time
+	'''
+	abc = getData()
+	com = abc.get_competition()
+	print com
+	'''
