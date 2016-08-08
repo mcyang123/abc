@@ -7,6 +7,7 @@ import time
 import urllib
 import multiprocessing
 import math
+import writeExcl
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -148,7 +149,7 @@ def mulprocess_fun_am(sub_competition,q,abc):
 					#print 'in'
 					sub_d = cc
 					sub_d['fid'] = Fid
-					sub_d['team'] = c['team'][0]+' VS '+c['team'][1]
+					sub_d['team'] = c['team']
 					sub_d['scene'] = c['scene']
 					cid_form = "%04d" % int(cc['cid'])
 					Lid = int(c['date'].replace('-','')+c['scene'][-3:]+cid_form)
@@ -203,12 +204,13 @@ def star_spider():   #main
 
 	file_name = time.strftime(time_day, time.localtime( time.time()))
 	clock = time.strftime(time_time, time.localtime( time.time()))
+	file_name = 'data/'+file_name+'.xls'
 	if int(clock[0:2])<12:
-		file_name = 'data/'+file_name+'-am.txt'
 		func = mulprocess_fun_am
+		Wt = 'w'
 	else:
-		file_name = 'data/'+file_name+'-pm.txt'
 		func = mulprocess_fun_pm
+		Wt = 'a'
 	abc = getData()
 	competition = abc.get_competition()
 	proc_amout = 5  #进程数
@@ -237,8 +239,9 @@ def star_spider():   #main
 		if not (z == ''):
 			data_output = dict(data_output,**z)
 			i = i+1
+			print i
 			if i == proc_amout:
-				writeExcl.write_excl(data_output,file_name,'w')
+				writeExcl.write_excl(data_output,file_name,Wt)
 				break
 
 
@@ -249,6 +252,7 @@ if __name__ == '__main__':
 		Tflag = 'am'
 	else:
 		Tflag = 'pm'
+	print '爬虫已启动....'
 	while (True):
 		now_time= time.strftime('%X', time.localtime( time.time()))
 		if Tflag == 'am' and (now_time>'10:00:00' and now_time < '10:20:00'):
@@ -263,5 +267,5 @@ if __name__ == '__main__':
 			
 			print 'end'
 		else:
-			#pass
-			print 'wait'
+			pass
+			#print now_time
