@@ -24,7 +24,7 @@ f_c.close()
 
 class getData():
 	def __init__(self):
-		self.url = 'http://odds.500.com/europe_jczq.shtml'    #get competition info
+		self.url = 'http://odds.500.com/'#'http://odds.500.com/europe_jczq.shtml'    #get competition info
 
 	def get_competition(self):
 		competition_list=[]
@@ -252,7 +252,7 @@ if __name__ == '__main__':
 		Tflag = 'am'
 	else:
 		Tflag = 'pm'
-	print '爬虫已启动....'
+	print u'爬虫已启动....'
 	while (True):
 		now_time= time.strftime('%X', time.localtime( time.time()))
 		if Tflag == 'am' and (now_time>'10:00:00' and now_time < '10:20:00'):
