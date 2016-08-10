@@ -28,11 +28,15 @@ def write_excl(dataInput,filename,wType):
 		dataInputKeys = dataInput.keys()
 		dataInputKeys.sort()
 		i = 0
+		team = ''
 		for k in dataInputKeys:
 			#sheet.write(i,0,dataInput[k]['team'].decode('gbk'))
-			sheet.write(i,0,dataInput[k]['team'][0].decode('gbk'))
-			sheet.write(i,1,'VS')
-			sheet.write(i,2,dataInput[k]['team'][1].decode('gbk'))
+			sheet.write(i,3,str(k))
+			if dataInput[k]['team'][0]+dataInput[k]['team'][1] != team:
+				sheet.write(i,0,dataInput[k]['team'][0].decode('gbk'))
+				sheet.write(i,1,'VS')
+				sheet.write(i,2,dataInput[k]['team'][1].decode('gbk'))
+				team =  dataInput[k]['team'][0]+dataInput[k]['team'][1]
 			sheet.write(i+1,0,target_list[dataInput[k]['cid']])
 			sheet.write(i+2,0,dataInput[k]['compensation'][0])
 			sheet.write(i+2,1,dataInput[k]['compensation'][1])
@@ -55,11 +59,14 @@ def write_excl(dataInput,filename,wType):
 		dataInputKeys = dataInput.keys()
 		dataInputKeys.sort()
 		i = 0
+		team = ''
 		for k in dataInputKeys:
 			#sheet.write(i,0,dataInput[k]['team'].decode('gbk'))
-			sheet.write(i,0,dataInput[k]['team'][0].decode('gbk'))
-			sheet.write(i,1,'VS')
-			sheet.write(i,2,dataInput[k]['team'][1].decode('gbk'))
+			if dataInput[k]['team'][0]+dataInput[k]['team'][1] != team:
+				sheet.write(i,0,dataInput[k]['team'][0].decode('gbk'))
+				sheet.write(i,1,'VS')
+				sheet.write(i,2,dataInput[k]['team'][1].decode('gbk'))
+				team =  dataInput[k]['team'][0]+dataInput[k]['team'][1]
 			sheet.write(i+1,0,target_list[dataInput[k]['cid']])
 			sheet.write(i+2,0,dataInput[k]['compensation'][0])
 			sheet.write(i+2,1,dataInput[k]['compensation'][1])

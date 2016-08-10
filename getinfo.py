@@ -67,6 +67,8 @@ class getData():
 		for a,info in enumerate(info_list):
 			if a%2 == 0:
 				data_c = {}
+				#-------------------number--------------------------------------
+				data_c['No'] = int((a+2)/2)
 				#------------------get fid--------------------------------------
 				fid = re.findall('data-fid="([0-9]+?)"',info,re.S)
 				if len(fid) == 1:
@@ -111,9 +113,9 @@ class getData():
 		company_list = []
 		html_company = '-1'
 		data_raw = ''                          #解析某场比赛原始数据代码
-		i = 0
+		page_n = 0
 		while html_company!='':
-			data_url = 'http://odds.500.com/fenxi1/ouzhi.php?id='+fid+'&ctype=1&start='+str(i*30+1)+'&r=1&style=0&guojia=0&chupan=1'
+			data_url = 'http://odds.500.com/fenxi1/ouzhi.php?id='+fid+'&ctype=1&start='+str(page_n*30+1)+'&r=1&style=0&guojia=0&chupan=1'
 			re_count = 0
 			while(re_count<5):
 				try:
@@ -130,21 +132,20 @@ class getData():
 				raise
 
 			data_raw = data_raw+html_company
-			i = i+1
+			page_n = page_n+1
 			#break #--------------------------------------------------
 		re_str = '<p>(.+?)</p>.+?<p>(.+?)</p>.+?<table(.+?)</table>.+?<table(.+?)</table>.+?<table(.+?)</table>.+?<table(.+?)</table>'
 		data_split = re.findall(re_str,data_raw,re.S)         #获取数据行
 		for data_temp in data_split:                          #解析每一行数据，获取该行中目标数据
 			company_dir = {} 
-			cid = re.findall('id="ck(.+?)"',data_temp[0],re.S)  #获取cid
-			if len(cid)==1:                                   
+			cid = re.findall('id="ck(.+?)"',data_temp[0],re.S)   #获取cid
+			if len(cid)==1:                                      #cid获取失败则报错                            
 				company_dir['cid'] = cid[0]
 			else:
 				company_dir['cid'] = ''
 				mes = "cid error\n"
 				self.time_refresh()
 				self.f_log.write(self.time_now+mes)
-
 			company_dir['compensation'] = re.findall('<td.+?>(.+?)</td>',data_temp[2],re.S)                         #获取赔率
 			company_dir['compensation_change'] = 'class="bg-a"'in data_temp[2] or 'class="bg-b"'in data_temp[2]     #赔率是否变化
 			company_dir['kelly'] = re.findall('<td.+?>(.+?)</td>',data_temp[5],re.S)                                #获取凯利
@@ -209,7 +210,7 @@ def mulprocess_fun_am(sub_competition,q,abc):
 					sub_d['team'] = c['team']
 					sub_d['scene'] = c['scene']
 					cid_form = "%04d" % int(cc['cid'])
-					Lid = int(c['date'].replace('-','')+c['scene'][-3:]+cid_form)
+					Lid = int(str(c['No'])+cid_form)
 					sub_data[Lid]=sub_d
 		print Fid
 	#print 
@@ -219,8 +220,8 @@ def mulprocess_fun_pm(sub_competition,q,abc):
 	sub_data = {}
 	global target_id
 	time_day = '%Y-%m-%d'
-	date = time.strftime(time_day, time.localtime( time.time()))
-	file_name = 'data/'+date+'-am.txt'
+	date_1 = time.strftime(time_day, time.localtime( time.time()))
+	file_name = 'data/'+date_1+'-am.txt'
 	try:
 		f_d = open(file_name,'r')
 		exec(f_d.read())
@@ -246,7 +247,7 @@ def mulprocess_fun_pm(sub_competition,q,abc):
 								sub_d['team'] = c['team']
 								sub_d['scene'] = c['scene']
 								cid_form = "%04d" % int(cc['cid'])
-								Lid = int(c['date'].replace('-','')+c['scene'][-3:]+cid_form)
+								Lid = int(str(c['No'])+cid_form)
 								sub_data[Lid]=sub_d
 								break  #              #处理公司信息
 					break	                           #跳出循环d
@@ -321,12 +322,12 @@ if __name__ == '__main__':
 	print u'爬虫已启动....'
 	while (True):
 		now_time= time.strftime('%X', time.localtime( time.time()))
-		if Tflag == 'am' and (now_time>'10:00:00' and now_time < '10:20:00'):
+		if Tflag == 'am' and (now_time>'10:01:00' and now_time < '10:20:00'):
 			print 'spider...'
 			Tflag = 'pm'
 			star_spider()
 			print 'end'
-		if Tflag == 'pm' and (now_time>'16:30:00' and now_time < '16:50:00'):
+		if Tflag == 'pm' and (now_time>'16:31:00' and now_time < '16:50:00'):
 			print 'spider...'
 			Tflag = 'am'
 			star_spider()
